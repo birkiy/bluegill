@@ -3,6 +3,7 @@ from matplotlib import gridspec
 from matplotlib.lines import Line2D
 import seaborn as sns
 
+import numpy as np
 
 
 
@@ -11,7 +12,7 @@ import seaborn as sns
 def plotHeatmaps(
     N,BED,
     samples, palette, sets, colorPalette,
-    ylim=100,mmax=2,pow_=0.5,
+    ylim=100,vmin=0,vmax=5,
     ylabrot=0, h=3000, clab="TMM Signal",
     dpi=50, interpolation="antialiased",
     noSort=False
@@ -52,7 +53,7 @@ def plotHeatmaps(
     """
     
 
-    if palette in None:
+    if palette is None:
         palette = len(samples) * ["Blues"]
     if "Set" not in BED.columns:
         BED["Set"] = "regions"
@@ -70,8 +71,9 @@ def plotHeatmaps(
     idxs = [sortedBED["Set"] == sets[i] for i in range(len(sets))]
 
     ratio = [sortedBED[idx].shape[0] for idx in idxs]
+    ratio = [sum(ratio) // 4, *ratio]
 
-    Nbins = N.shape[0]
+    Nbins = N.shape[-1]
     
 
     plt.rcParams["figure.dpi"] = dpi
@@ -120,20 +122,20 @@ def plotHeatmaps(
             NS = Nsorted[idx,i,:]
             ax = fig.add_subplot(gs[j+1,i])
             # interpolation = "None" if you need no normalization
-            plt.imshow(NS,aspect="auto", cmap=palette[i], vmax=mmax*(Nsorted.max() ** pow_), vmin=0 ,  interpolation=interpolation)
+            plt.imshow(NS,aspect="auto", cmap=palette[i], vmax=vmax, vmin=vmin ,  interpolation=interpolation)
 
 
             plt.xticks([]) 
             plt.yticks([])
 
             if i == 0:
-                plt.ylabel(sets[j], rotation=ylabrot, ha="right")
+                plt.ylabel(sets[j], rotation=ylabrot, ha="right", va="center")
             else:
                 plt.ylabel("")
 
             if j == len(idxs)-1:
-                h =/ 1000
-                plt.xticks([0, Nbins/2, Nbins], [f"-{h}kb", "Center", f"+{h}kb"], rotation=0)
+                
+                plt.xticks([0, Nbins/2, Nbins], [f"-{h/1000}kb", "Center", f"+{h/1000}kb"], rotation=0)
                 cax = fig.add_axes([ax.get_position().x0,ax.get_position().y0-0.05, ax.get_position().x1-ax.get_position().x0,0.01])
                 cbar = plt.colorbar(cax=cax, orientation="horizontal")
 

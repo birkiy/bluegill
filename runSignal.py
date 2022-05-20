@@ -57,7 +57,10 @@ def getSignal(poss, files, mi, Nbins,h, type_="mean", scaled=False):
                     endCrop = 0
                 bins = startCrop + endCrop
                 
-                tmp = bw.stats(pos[0], start, end, nBins=Nbins-bins,  type=type_)
+                try:
+                    tmp = bw.stats(pos[0], start, end, nBins=Nbins-bins,  type=type_)
+                except: 
+                    print(pos)
             else:
                 start = pos[1]
                 end = pos[2]
