@@ -11,6 +11,9 @@ import pyBigWig as BW
 
 
 def getIndex(l, nP):
+    """
+    This function splits list of regions into smaller chunks.
+    """
     total = len(l)
 
     ppr = np.floor( total / nP)
@@ -28,54 +31,10 @@ def getIndex(l, nP):
 
 
 
-
-
-
-
-    
 def getSignal(poss, files, mi, Nbins,h, type_="mean", scaled=False):
-    S = np.zeros((len(poss), len(files), Nbins))
-    for j,file in enumerate(files):
-        print(f"{mi}: {file.split('/')[-1]}")
-        bw = BW.open(file)
-        for i,pos in enumerate(poss):
-            if not scaled:
-
-                center = (pos[1]+pos[2]) // 2
-                if center-h < 0:
-                    start = 1
-                    startCrop = (Nbins//2) - (abs(center - start) // 20)
-                else:
-                    start = center -h
-                    startCrop = 0
-                if center +h > sizes.loc[pos[0], "Size"]:
-                    end = sizes.loc[pos[0], "Size"]
-                    endCrop = (Nbins//2) - (abs(center - end) // 20)
-                else:
-                    end = center +h
-                    endCrop = 0
-                bins = startCrop + endCrop
-
-            else:
-                start = pos[1]-h
-                end = pos[2]+h
-                startCrop = 0
-                endCrop = 0
-                bins = startCrop + endCrop
-
-            try:
-                tmp = bw.stats(pos[0], start, end, nBins=Nbins-bins,  type=type_)
-            except:
-                print(pos)
-
-            S[i,j,:] = np.nan_to_num(np.concatenate((np.zeros((startCrop)), tmp, np.zeros((endCrop)))))
-    pickle.dump(S, open(f".tmp/{mi}.p", "wb"))
-
-
-                
-
-
-def getSignal(poss, files, mi, Nbins,h, type_="mean", scaled=False):
+    """
+    This function gets signal.
+    """
     S = np.zeros((len(poss), len(files), Nbins))
     for j,file in enumerate(files):
         print(f"{mi}: {file.split('/')[-1]}")
@@ -128,6 +87,9 @@ def getSignal(poss, files, mi, Nbins,h, type_="mean", scaled=False):
 
 
 def concatSignal(out, nP):
+    """
+    This function concatenates multiple pickle files into one pickle file.
+    """
     for i in range(nP):
         with open(f".tmp/{i}.p","rb") as f:
             tmp = pickle.load(f)
@@ -140,41 +102,65 @@ def concatSignal(out, nP):
         pickle.dump(A, f)
         
 
-def runSignal(BED, BWS, OUT,
-              ref="hg19", nP=32, Nbins=200,h=3000, type_="mean", scaled=False):
-	global sizes
-	sizes = pd.read_table(f"/groups/lackgrp/genomeAnnotations/{ref}/{ref}.chrom.sizes", names=["Chr", "Size"])
-	print(ref)
-	sizes = sizes.reset_index(drop=True).set_index("Chr")
-	poss = list(zip(BED["Chr"], BED["Start"], BED["End"]))
-	currents, targets = getIndex(poss, nP)
-	if not os.path.isdir(".tmp"):
-		os.mkdir(".tmp")
-		
-	allprocesses = [
-		multiprocessing.Process(
-			target=getSignal,
-			args=(
-				poss[currents[i]:targets[i]],
-				BWS,
-				i,
-				Nbins, h,
-				type_,
-				scaled
-			)
-		)
-		for i in range(nP)
-	]
-	
-	for process in allprocesses:
-		process.start()
-	
-	
-	for process in allprocesses:
-		process.join()
-		
-	
-	concatSignal(OUT, nP)
+def runSignal(
+    BED, BWS, OUT,
+    ref="hg19",
+    scaled=False,Nbins=200,h=3000,
+    type_="mean",
+    nP=32
+):
+    """
+    This function collects signal from BW files over multiple genomic regions using multiprocessing. According to genome build it fills extremes with 0.
+    
+    :param BED: Pandas DataFrame of regions.
+    
+    :param BWS: List of BW file locations.
+    
+    :param OUT: output location of the data.
+    
+    :param ref: Reference genome build. Default `hg19`
+    
+    :param scaled: If scaled, region of interest scaled to same size. Default `False`
+    
+    :param Nbins: Number of bins to cover the regions. Default `200`
+    
+    :param h: Range from center or TSS/TTS (BP). Default `3000` 
+    
+    :param type_: Type of collection of signal from BW. See pybigwig for details. Default `mean`
+    
+    :param nP: Number of processors. Default `32`
+    """
+    global sizes
+    sizes = pd.read_table(f"/groups/lackgrp/genomeAnnotations/{ref}/{ref}.chrom.sizes", names=["Chr", "Size"])
+    print(ref)
+    sizes = sizes.reset_index(drop=True).set_index("Chr")
+    poss = list(zip(BED["Chr"], BED["Start"], BED["End"]))
+    currents, targets = getIndex(poss, nP)
+    if not os.path.isdir(".tmp"):
+        os.mkdir(".tmp")
+        
+    allprocesses = [
+        multiprocessing.Process(
+            target=getSignal,
+            args=(
+                poss[currents[i]:targets[i]],
+                BWS,
+                i,
+                Nbins, h,
+                type_,
+                scaled
+            )
+        )
+        for i in range(nP)
+    ]
+    for process in allprocesses:
+        process.start()
+
+    for process in allprocesses:
+        process.join()
+
+    concatSignal(OUT, nP)
+
 
 
 
