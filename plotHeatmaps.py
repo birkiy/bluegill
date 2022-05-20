@@ -135,7 +135,7 @@ def plotHeatmaps(
 
             if j == len(idxs)-1:
                 
-                plt.xticks([0, Nbins/2, Nbins], [f"-{h/1000}kb", "Center", f"+{h/1000}kb"], rotation=0)
+                plt.xticks([0, Nbins/2, Nbins], [f"-{h//1000}kb", "Center", f"+{h//1000}kb"], rotation=0)
                 cax = fig.add_axes([ax.get_position().x0,ax.get_position().y0-0.05, ax.get_position().x1-ax.get_position().x0,0.01])
                 cbar = plt.colorbar(cax=cax, orientation="horizontal")
 
