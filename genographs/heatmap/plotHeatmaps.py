@@ -13,7 +13,7 @@ def plotHeatmaps(
     N,BED,
     samples, palette, sets, colorPalette,
     ylim=100,vmin=0,vmax=5,
-    ylabrot=0, h=3000, clab="TMM Signal",
+    ylabrot=0, h=3000, clab="Signal",
     dpi=50, interpolation="antialiased",
     noSort=False
 ):
@@ -102,7 +102,7 @@ def plotHeatmaps(
             if i != 0:
                 plt.yticks([])
             else:
-                plt.ylabel("TMM Signal")
+                plt.ylabel(clab)
             plt.xticks([])
 
 

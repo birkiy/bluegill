@@ -11,7 +11,7 @@ def plotProfiles(
     N, BED,
     sets,colorPalette,
     nrows,ncols,
-    ylim=15,
+    ylim=15,ylab="Signal",
     dpi=100,
     h=3000
 ):
@@ -42,7 +42,7 @@ def plotProfiles(
         if i % ncols != 0:
             plt.yticks([])
         else:
-            plt.ylabel("TMM Signal")
+            plt.ylabel(ylab)
 
 
         plt.xticks([])
