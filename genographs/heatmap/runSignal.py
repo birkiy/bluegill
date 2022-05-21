@@ -2,12 +2,15 @@
 import os
 import pickle
 import multiprocessing 
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pyBigWig as BW
 
-                                                                                  
+
+
+
 
 
 def getIndex(l, nP):
@@ -84,7 +87,13 @@ def getSignal(poss, files, mi, Nbins,h, type_="mean", scaled=False):
 
 
 
-
+def readFile(path):
+    poss = []
+    with open(path, "r") as f:
+        for line in f.readlines():
+            row = line.strip().split("\t")
+            poss.append((row[0], int(row[1]), int(row[2])))
+    return poss
 
 
 
@@ -101,6 +110,8 @@ def concatSignal(out, nP):
             else:                
                 A = np.concatenate((A, tmp), 0)
     print("Writing...")
+    
+    A = np.nan_to_num(A)
     with open(out, "wb") as f:
         pickle.dump(A, f)
         
@@ -134,10 +145,34 @@ def runSignal(
     :param nP: Number of processors. Default `32`
     """
     global sizes
-    sizes = pd.read_table(f"/groups/lackgrp/genomeAnnotations/{ref}/{ref}.chrom.sizes", names=["Chr", "Size"])
+    sizes = pd.read_table(f".ref/{ref}.chrom.sizes", names=["Chr", "Size"])
     print(ref)
     sizes = sizes.reset_index(drop=True).set_index("Chr")
-    poss = list(zip(BED["Chr"], BED["Start"], BED["End"]))
+    
+    if type(BED) is list:
+        poss = []
+        BEDdf = pd.DataFrame()
+        for path in BED:
+            tmp = readFile(path)
+            poss += tmp
+            
+            tmp = pd.DataFrame(tmp, names=["Chr", "Start", "End"])
+            tmp["Set"] = Path(path).stem
+            
+            BEDdf = pd.concat([BEDdf, tmp])
+            
+        BED = BEDdf.sort_values(["Chr", "Start"])
+        
+        BEDdf = None
+        
+    else:
+        poss = list(zip(BED["Chr"], BED["Start"], BED["End"]))
+    
+    samples = []
+    for path in BWS:
+        samples.append(Path(path).stem)
+    
+    
     currents, targets = getIndex(poss, nP)
     if not os.path.isdir(".tmp"):
         os.mkdir(".tmp")
@@ -163,7 +198,13 @@ def runSignal(
         process.join()
 
     concatSignal(OUT, nP)
+    
+    return BED, samples
 
 
 
-
+ 
+    
+        
+    
+    
