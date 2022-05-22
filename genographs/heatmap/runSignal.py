@@ -42,6 +42,7 @@ def getSignal(poss, files, mi, Nbins,h, type_="mean", scaled=False):
     for j,file in enumerate(files):
         print(f"{mi}: {file.split('/')[-1]}")
         bw = BW.open(file)
+        sizes = bw.chroms()
         for i,pos in enumerate(poss):
             if not scaled:
 
@@ -52,8 +53,8 @@ def getSignal(poss, files, mi, Nbins,h, type_="mean", scaled=False):
                 else:
                     start = center -h
                     startCrop = 0
-                if center +h > sizes.loc[pos[0], "Size"]:
-                    end = sizes.loc[pos[0], "Size"]
+                if center +h > sizes[pos[0]]:
+                    end = sizes[pos[0]]
                     endCrop = (Nbins//2) - (abs(center - end) // 20)
                 else:
                     end = center +h
@@ -118,7 +119,6 @@ def concatSignal(out, nP):
 
 def runSignal(
     BED, BWS, OUT,
-    ref="hg19",
     scaled=False,Nbins=200,h=3000,
     type_="mean",
     nP=32
@@ -132,8 +132,6 @@ def runSignal(
     
     :param OUT: output location of the data.
     
-    :param ref: Reference genome build. Default `hg19`
-    
     :param scaled: If scaled, region of interest scaled to same size. Default `False`
     
     :param Nbins: Number of bins to cover the regions. Default `200`
@@ -144,10 +142,6 @@ def runSignal(
     
     :param nP: Number of processors. Default `32`
     """
-    global sizes
-    sizes = pd.read_table(f".ref/{ref}.chrom.sizes", names=["Chr", "Size"])
-    print(ref)
-    sizes = sizes.reset_index(drop=True).set_index("Chr")
     
     if type(BED) is list:
         poss = []
