@@ -34,18 +34,60 @@ def getIndex(l, nP):
 
 
 
-def getSignal(poss, files, mi, Nbins,h, type_="mean", scaled=False):
+def getSignal(poss, files, mi, Nbins,h, type_="mean", scaled=False, igv=False):
     """
     This function gets signal.
     """
     S = np.zeros((len(poss), len(files), Nbins))
     for j,file in enumerate(files):
-        print(f"{mi}: {file.split('/')[-1]}")
+        print(f"{mi}: {file.split('/')[-1]}", end=" :: ")
         bw = BW.open(file)
         sizes = bw.chroms()
         for i,pos in enumerate(poss):
-            if not scaled:
+            
+            if scaled:
+                start = pos[1]
+                end = pos[2]
+                                
+                startCrop = 0
+                endCrop = 0
+                
+                hbin = Nbins // 4
+                bins = startCrop + endCrop + 2*hbin
+                
+                tmp = bw.stats(pos[0], start, end, nBins=Nbins-bins,  type=type_)
+                
+                hbin1 = bw.stats(pos[0], start-h, start, nBins=hbin,  type=type_)
+                hbin2 = bw.stats(pos[0], end, end+h, nBins=hbin,  type=type_)
+                
+                tmp = np.concatenate((hbin1, tmp,hbin2))            
+            
+            elif igv:
+                
+                start_ = pos[1]
+                end_ = pos[2]
+                    
+                l = end_ - start_
+                h = l
+                      
+                if start_-h < 0:
+                    start = 1
+                    startCrop = (Nbins//2) - (abs(start_ - start) // 20)
+                else:
+                    start = start_ -h
+                    startCrop = 0
+                
+                if end_ +h > sizes[pos[0]]:
+                    end = sizes[pos[0]]
+                    endCrop = (Nbins//2) - (abs(end_ - end) // 20)
+                else:
+                    end = end_ +h
+                    endCrop = 0
+                bins = startCrop + endCrop
+                
+                tmp = bw.stats(pos[0], start, end, nBins=Nbins-bins,  type=type_)
 
+            else:
                 center = (pos[1]+pos[2]) // 2
                 if center-h < 0:
                     start = 1
@@ -65,23 +107,8 @@ def getSignal(poss, files, mi, Nbins,h, type_="mean", scaled=False):
                     tmp = bw.stats(pos[0], start, end, nBins=Nbins-bins,  type=type_)
                 except: 
                     print(pos)
-            else:
-                start = pos[1]
-                end = pos[2]
-                                
-                startCrop = 0
-                endCrop = 0
-                
-                hbin = Nbins // 4
-                bins = startCrop + endCrop + 2*hbin
-                
-                tmp = bw.stats(pos[0], start, end, nBins=Nbins-bins,  type=type_)
-                
-                hbin1 = bw.stats(pos[0], start-h, start, nBins=hbin,  type=type_)
-                hbin2 = bw.stats(pos[0], end, end+h, nBins=hbin,  type=type_)
-                
-                tmp = np.concatenate((hbin1, tmp,hbin2))            
-            
+                    
+                    
             S[i,j,:] = np.nan_to_num(np.concatenate((np.zeros((startCrop)), tmp, np.zeros((endCrop)))))
     pickle.dump(S, open(f".tmp/{mi}.p", "wb"))
 
@@ -119,7 +146,7 @@ def concatSignal(out, nP):
 
 def runSignal(
     BED, BWS, OUT,
-    scaled=False,Nbins=200,h=3000,
+    scaled=False,igv=False,Nbins=200,h=3000,
     type_="mean",
     nP=32
 ):
@@ -142,7 +169,6 @@ def runSignal(
     
     :param nP: Number of processors. Default `32`
     """
-    
     if type(BED) is list:
         poss = []
         BEDdf = pd.DataFrame()
@@ -180,7 +206,8 @@ def runSignal(
                 i,
                 Nbins, h,
                 type_,
-                scaled
+                scaled,
+                igv
             )
         )
         for i in range(nP)
