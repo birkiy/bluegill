@@ -1,3 +1,3 @@
-# genographs
+# bluegill
 
-Wow! New genomics visualization library!
+! New genomics visualization library!
