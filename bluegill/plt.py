@@ -77,11 +77,8 @@ def plotHeatmaps(
 
     Nbins = N.shape[-1]
     
-
-    plt.rcParams["figure.dpi"] = dpi
-      
     fig = plt.figure(
-        figsize=[len(samples)*3.5, 14]
+        figsize=[len(samples)*3.5, 14], dpi=dpi
     )
     gs = gridspec.GridSpec(
         nrows=len(ratio), 
@@ -165,13 +162,11 @@ def plotProfiles(
     idxs = [BED["Set"] == sets[i] for i in range(len(sets))]
     Nbins=N.shape[-1]
 
-    plt.rcParams["figure.dpi"] = dpi
-
-    sns.set(font_scale=1.5, style="ticks")
-
+    
     fig = plt.figure(
-        figsize=[ncols*3.5, nrows*3.5]
+        figsize=[ncols*3.5, nrows*3.5], dpi=dpi
     )
+    
     gs = gridspec.GridSpec(
         nrows=nrows,ncols=ncols,
         hspace=0.4,wspace=0.2
