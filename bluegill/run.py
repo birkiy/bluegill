@@ -64,10 +64,12 @@ def runSignal(
         BED = BEDdf.sort_values(["Chr", "Start"])
         
         BEDdf = None
-        
+        BED = BED[(BED["Chr"].str.find('_') == -1) & (BED['Chr'] != 'chrM')]
+        print('')
         poss = list(zip(BED["Chr"], BED["Start"], BED["End"]))
         
     else:
+        BED = BED[(BED["Chr"].str.find('_') == -1) & (BED['Chr'] != 'chrM')]
         poss = list(zip(BED["Chr"], BED["Start"], BED["End"]))
     
     samples = []
