@@ -14,10 +14,10 @@ import os
 def plotHeatmaps(
     N,BED,
     samples, palette, sets, colorPalette,
-    ylim=(0,100),vmin=0,vmax=5,
-    ylabrot=0, h=3000, clab="Signal",
+    ylim=(0,100),vmin=0,vmax=5,vmins=None, vmaxes=None,
+    ylabrot=0, h=3000, clab="Signal",clabs=None,
     dpi=50, interpolation="antialiased",
-    noSort=False
+    noSort=False, profile=True
 ):
     """
     Plots profiles and heatmaps of signal of genomic regions. 
@@ -54,9 +54,18 @@ def plotHeatmaps(
     
     """
     
+    if clabs is None:
+        clabs = [clab]*len(samples)
+    
+    if vmaxes is None:
+        vmaxes = [vmax]*len(samples)
 
+    if vmins is None:
+        vmins = [vmin]*len(samples)
+    
     if palette is None:
         palette = len(samples) * ["Blues"]
+    
     if "Set" not in BED.columns:
         BED["Set"] = "regions"
     
@@ -73,7 +82,9 @@ def plotHeatmaps(
     idxs = [sortedBED["Set"] == sets[i] for i in range(len(sets))]
 
     ratio = [sortedBED[idx].shape[0] for idx in idxs]
-    ratio = [sum(ratio) // 4, *ratio]
+
+    if profile:
+        ratio = [sum(ratio) // 4, *ratio]
 
     Nbins = N.shape[-1]
     
@@ -91,36 +102,40 @@ def plotHeatmaps(
 
     
     for i, sample in enumerate(samples):
-        fig.add_subplot(gs[0,i])
+        if profile:
+            j_plus = 1
+            fig.add_subplot(gs[0,i])
+            for j,idx in enumerate(idxs):
+                NS = Nsorted[idx,i,:]
+                plt.plot(NS.mean(0), c=colorPalette[sets[j]])
+                plt.ylim(ylim)
+                if i != 0:
+                    plt.yticks([])
+                else:
+                    plt.ylabel(clab)
+                plt.xticks([])
+
+
+                if i == len(samples)-1:
+
+                    handles = [  
+                        Line2D([0], [0], marker='o', color=colorPalette[k], label=k, markersize=7, linestyle="None")
+                        for k in colorPalette if k in sets
+                    ]
+                    labels = [k for k in colorPalette if k in sets]
+                    plt.legend(handles, labels, frameon=False, loc='center left', bbox_to_anchor=(1, 0.5))
+            plt.title(sample)
+        else:
+            j_plus = 0
+
         for j,idx in enumerate(idxs):
             NS = Nsorted[idx,i,:]
-            plt.plot(NS.mean(0), c=colorPalette[sets[j]])
-            plt.ylim(ylim)
-            if i != 0:
-                plt.yticks([])
-            else:
-                plt.ylabel(clab)
-            plt.xticks([])
+            ax = fig.add_subplot(gs[j+j_plus,i])
 
-
-            if i == len(samples)-1:
-
-                handles = [  
-                    Line2D([0], [0], marker='o', color=colorPalette[k], label=k, markersize=7, linestyle="None")
-                    for k in colorPalette if k in sets
-                ]
-                labels = [k for k in colorPalette if k in sets]
-                plt.legend(handles, labels, frameon=False, loc='center left', bbox_to_anchor=(1, 0.5))  
-
-        plt.title(sample)
-
-
-        for j,idx in enumerate(idxs):
-            NS = Nsorted[idx,i,:]
-            ax = fig.add_subplot(gs[j+1,i])
             # interpolation = "None" if you need no normalization
-            plt.imshow(NS,aspect="auto", cmap=palette[i], vmax=vmax, vmin=vmin ,  interpolation=interpolation)
-
+            plt.imshow(NS,aspect="auto", cmap=palette[i], vmax=vmaxes[i], vmin=vmins[i] ,  interpolation=interpolation)
+            if not profile and (j == 0):
+                plt.title(sample)
 
             plt.xticks([]) 
             plt.yticks([])
@@ -137,7 +152,7 @@ def plotHeatmaps(
                 cbar = plt.colorbar(cax=cax, orientation="horizontal")
 
                 #cbar = plt.colorbar(location="bottom", pad=0.15)
-                cbar.set_label(clab) 
+                cbar.set_label(clabs[i]) 
             else:
                 plt.xticks([])
 
