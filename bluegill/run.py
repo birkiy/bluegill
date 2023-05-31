@@ -110,8 +110,7 @@ def runSignal(
 
 def runTMM(S):
     S = np.nan_to_num(S)
-    R = 1 /(conorm.tmm_norm_factors(np.nanmean(S, 2) * np.nanmean(S, 2).sum(0) / 1000000)
-    
+    R = 1 /(conorm.tmm_norm_factors(np.nanmean(S, 2)) * np.nanmean(S, 2).sum(0) / 1000000)
     return S * R[:,None]
     
         
